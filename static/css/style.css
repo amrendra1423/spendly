@@ -478,6 +478,49 @@ a { color: inherit; text-decoration: none; }
 .auth-switch a:hover { text-decoration: underline; }
 
 /* ------------------------------------------------------------------ */
+/* Legal pages                                                         */
+/* ------------------------------------------------------------------ */
+
+.legal-section {
+    padding: 4rem 2rem 5rem;
+}
+
+.legal-inner {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.legal-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+}
+
+.legal-updated {
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    margin-bottom: 2.5rem;
+}
+
+.legal-block {
+    margin-bottom: 2rem;
+}
+
+.legal-heading {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--ink);
+    margin-bottom: 0.6rem;
+}
+
+.legal-block p {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    line-height: 1.7;
+}
+
+/* ------------------------------------------------------------------ */
 /* Footer                                                              */
 /* ------------------------------------------------------------------ */
 
