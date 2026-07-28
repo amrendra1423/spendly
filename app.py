@@ -1,6 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
+from werkzeug.security import generate_password_hash
 
-from database.db import get_db, init_db, seed_db
+from database.db import get_db, init_db, seed_db, get_user_by_email
 
 app = Flask(__name__)
 
@@ -18,9 +19,38 @@ def landing():
     return render_template("landing.html")
 
 
-@app.route("/register")
+@app.route("/register", methods=["GET", "POST"])
 def register():
-    return render_template("register.html")
+    if request.method == "GET":
+        return render_template("register.html")
+
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    if not name or not email or not password or not confirm_password:
+        return render_template("register.html", error="All fields are required.")
+
+    if password != confirm_password:
+        return render_template("register.html", error="Passwords do not match.")
+
+    if get_user_by_email(email):
+        return render_template(
+            "register.html", error="An account with that email already exists."
+        )
+
+    password_hash = generate_password_hash(password)
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+        (name, email, password_hash),
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("login"))
 
 
 @app.route("/login")
