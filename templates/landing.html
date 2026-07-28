@@ -60,7 +60,11 @@
 {% block content %}
 
 <section class="hero">
+    {% if session.get('user_id') %}
+    <div class="hero-badge"><span class="hero-badge-dot"></span>Welcome back, {{ session.get('user_name') }}!</div>
+    {% else %}
     <div class="hero-badge"><span class="hero-badge-dot"></span>Free to use · No credit card needed</div>
+    {% endif %}
     <h1 class="hero-title">
         Track every rupee.<br>
         <span class="hero-title-accent">Know where it goes.</span>
