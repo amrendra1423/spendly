@@ -24,7 +24,7 @@ def landing():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("user_id"):
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "GET":
         return render_template("register.html")
@@ -61,7 +61,7 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "GET":
         return render_template("login.html")
@@ -77,7 +77,7 @@ def login():
 
     session["user_id"] = user["id"]
     session["user_name"] = user["name"]
-    return redirect(url_for("landing"))
+    return redirect(url_for("profile"))
 
 
 @app.route("/terms")
@@ -102,7 +102,45 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    user = {
+        "name": "Demo User",
+        "email": "demo@spendly.com",
+        "initials": "DU",
+        "member_since": "January 2026",
+    }
+    stats = {
+        "total_spent": "₹24,850",
+        "transaction_count": 34,
+        "top_category": "Food",
+    }
+    transactions = [
+        {"date": "Jul 27, 2026", "description": "Grocery shopping", "category": "Food", "amount": "₹1,240.00"},
+        {"date": "Jul 25, 2026", "description": "Uber ride", "category": "Transport", "amount": "₹380.00"},
+        {"date": "Jul 22, 2026", "description": "Electricity bill", "category": "Bills", "amount": "₹2,150.00"},
+        {"date": "Jul 19, 2026", "description": "Pharmacy", "category": "Health", "amount": "₹560.00"},
+        {"date": "Jul 16, 2026", "description": "Movie night", "category": "Entertainment", "amount": "₹740.00"},
+        {"date": "Jul 12, 2026", "description": "New shoes", "category": "Shopping", "amount": "₹3,200.00"},
+    ]
+    categories = [
+        {"name": "Food", "amount": "₹8,420", "percent": 78},
+        {"name": "Transport", "amount": "₹4,100", "percent": 55},
+        {"name": "Bills", "amount": "₹6,230", "percent": 68},
+        {"name": "Health", "amount": "₹1,890", "percent": 30},
+        {"name": "Entertainment", "amount": "₹2,540", "percent": 38},
+        {"name": "Shopping", "amount": "₹3,900", "percent": 42},
+        {"name": "Other", "amount": "₹1,120", "percent": 18},
+    ]
+
+    return render_template(
+        "profile.html",
+        user=user,
+        stats=stats,
+        transactions=transactions,
+        categories=categories,
+    )
 
 
 @app.route("/expenses/add")
