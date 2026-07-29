@@ -1,7 +1,15 @@
+from datetime import datetime
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from database.db import get_db, init_db, seed_db, get_user_by_email
+from database.queries import (
+    get_user_by_id,
+    get_summary_stats,
+    get_recent_transactions,
+    get_category_breakdown,
+)
 
 app = Flask(__name__)
 # TODO: move to an environment variable before production
@@ -10,6 +18,23 @@ app.secret_key = "dev-secret-key-change-in-production"
 with app.app_context():
     init_db()
     seed_db()
+
+
+# ------------------------------------------------------------------ #
+# Formatting helpers                                                  #
+# ------------------------------------------------------------------ #
+
+def _currency(amount):
+    return f"₹{amount:,.2f}"
+
+
+def _display_date(iso_date):
+    return datetime.strptime(iso_date, "%Y-%m-%d").strftime("%b %d, %Y")
+
+
+def _initials(name):
+    words = name.split()
+    return "".join(word[0] for word in words[:2]).upper()
 
 
 # ------------------------------------------------------------------ #
@@ -102,37 +127,41 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    if not session.get("user_id"):
+    user_id = session.get("user_id")
+    if not user_id:
         return redirect(url_for("login"))
 
+    user_row = get_user_by_id(user_id)
     user = {
-        "name": "Demo User",
-        "email": "demo@spendly.com",
-        "initials": "DU",
-        "member_since": "January 2026",
+        "name": user_row["name"],
+        "email": user_row["email"],
+        "initials": _initials(user_row["name"]),
+        "member_since": user_row["member_since"],
     }
+
+    # --- BEGIN_STATS_BLOCK ---
+    # SUBAGENT 2 (Summary stats): call get_summary_stats(user_id) and build
+    # `stats` with total_spent formatted via _currency().
     stats = {
-        "total_spent": "₹24,850",
-        "transaction_count": 34,
-        "top_category": "Food",
+        "total_spent": _currency(0),
+        "transaction_count": 0,
+        "top_category": "—",
     }
-    transactions = [
-        {"date": "Jul 27, 2026", "description": "Grocery shopping", "category": "Food", "amount": "₹1,240.00"},
-        {"date": "Jul 25, 2026", "description": "Uber ride", "category": "Transport", "amount": "₹380.00"},
-        {"date": "Jul 22, 2026", "description": "Electricity bill", "category": "Bills", "amount": "₹2,150.00"},
-        {"date": "Jul 19, 2026", "description": "Pharmacy", "category": "Health", "amount": "₹560.00"},
-        {"date": "Jul 16, 2026", "description": "Movie night", "category": "Entertainment", "amount": "₹740.00"},
-        {"date": "Jul 12, 2026", "description": "New shoes", "category": "Shopping", "amount": "₹3,200.00"},
-    ]
-    categories = [
-        {"name": "Food", "amount": "₹8,420", "percent": 78},
-        {"name": "Transport", "amount": "₹4,100", "percent": 55},
-        {"name": "Bills", "amount": "₹6,230", "percent": 68},
-        {"name": "Health", "amount": "₹1,890", "percent": 30},
-        {"name": "Entertainment", "amount": "₹2,540", "percent": 38},
-        {"name": "Shopping", "amount": "₹3,900", "percent": 42},
-        {"name": "Other", "amount": "₹1,120", "percent": 18},
-    ]
+    # --- END_STATS_BLOCK ---
+
+    # --- BEGIN_TRANSACTIONS_BLOCK ---
+    # SUBAGENT 1 (Transaction history): call get_recent_transactions(user_id)
+    # and build `transactions` with date/amount formatted via
+    # _display_date() / _currency().
+    transactions = []
+    # --- END_TRANSACTIONS_BLOCK ---
+
+    # --- BEGIN_CATEGORIES_BLOCK ---
+    # SUBAGENT 3 (Category breakdown): call get_category_breakdown(user_id)
+    # and build `categories`, renaming `pct` -> `percent` and formatting
+    # `amount` via _currency().
+    categories = []
+    # --- END_CATEGORIES_BLOCK ---
 
     return render_template(
         "profile.html",
