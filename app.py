@@ -150,10 +150,15 @@ def profile():
     # --- END_STATS_BLOCK ---
 
     # --- BEGIN_TRANSACTIONS_BLOCK ---
-    # SUBAGENT 1 (Transaction history): call get_recent_transactions(user_id)
-    # and build `transactions` with date/amount formatted via
-    # _display_date() / _currency().
-    transactions = []
+    transactions = [
+        {
+            "date": _display_date(tx["date"]),
+            "description": tx["description"],
+            "category": tx["category"],
+            "amount": _currency(tx["amount"]),
+        }
+        for tx in get_recent_transactions(user_id)
+    ]
     # --- END_TRANSACTIONS_BLOCK ---
 
     # --- BEGIN_CATEGORIES_BLOCK ---

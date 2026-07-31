@@ -31,11 +31,28 @@ def get_summary_stats(user_id):
 
 
 def get_recent_transactions(user_id, limit=10):
-    # SUBAGENT 1 (Transaction history): implement this function.
-    # Contract: return a list of dicts, each with date, description, category, amount
-    # (raw ISO date string / float amount here — formatting happens in app.py).
-    # Order newest-first (date DESC, id DESC), capped at `limit`. [] if none.
-    raise NotImplementedError
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT date, description, category, amount
+        FROM expenses
+        WHERE user_id = ?
+        ORDER BY date DESC, id DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    ).fetchall()
+    conn.close()
+
+    return [
+        {
+            "date": row["date"],
+            "description": row["description"],
+            "category": row["category"],
+            "amount": row["amount"],
+        }
+        for row in rows
+    ]
 
 
 def get_category_breakdown(user_id):
