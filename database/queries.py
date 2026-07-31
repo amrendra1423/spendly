@@ -77,8 +77,33 @@ def get_recent_transactions(user_id, limit=10):
 
 
 def get_category_breakdown(user_id):
-    # SUBAGENT 3 (Category breakdown): implement this function.
-    # Contract: return a list of dicts, each with name, amount, pct (int)
-    # Ordered by amount desc. pct values must sum to exactly 100 (floor each,
-    # then give the remainder to the largest category). [] if none.
-    raise NotImplementedError
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT category, SUM(amount) AS total
+        FROM expenses
+        WHERE user_id = ?
+        GROUP BY category
+        ORDER BY total DESC
+        """,
+        (user_id,),
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        return []
+
+    grand_total = sum(row["total"] for row in rows)
+
+    breakdown = []
+    for row in rows:
+        exact_pct = (row["total"] / grand_total) * 100
+        breakdown.append(
+            {"name": row["category"], "amount": row["total"], "pct": int(exact_pct)}
+        )
+
+    remainder = 100 - sum(item["pct"] for item in breakdown)
+    if breakdown:
+        breakdown[0]["pct"] += remainder
+
+    return breakdown

@@ -161,10 +161,14 @@ def profile():
     # --- END_TRANSACTIONS_BLOCK ---
 
     # --- BEGIN_CATEGORIES_BLOCK ---
-    # SUBAGENT 3 (Category breakdown): call get_category_breakdown(user_id)
-    # and build `categories`, renaming `pct` -> `percent` and formatting
-    # `amount` via _currency().
-    categories = []
+    categories = [
+        {
+            "name": cat["name"],
+            "amount": _currency(cat["amount"]),
+            "percent": cat["pct"],
+        }
+        for cat in get_category_breakdown(user_id)
+    ]
     # --- END_CATEGORIES_BLOCK ---
 
     return render_template(
