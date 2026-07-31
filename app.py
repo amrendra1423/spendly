@@ -140,12 +140,11 @@ def profile():
     }
 
     # --- BEGIN_STATS_BLOCK ---
-    # SUBAGENT 2 (Summary stats): call get_summary_stats(user_id) and build
-    # `stats` with total_spent formatted via _currency().
+    summary = get_summary_stats(user_id)
     stats = {
-        "total_spent": _currency(0),
-        "transaction_count": 0,
-        "top_category": "—",
+        "total_spent": _currency(summary["total_spent"]),
+        "transaction_count": summary["transaction_count"],
+        "top_category": summary["top_category"],
     }
     # --- END_STATS_BLOCK ---
 

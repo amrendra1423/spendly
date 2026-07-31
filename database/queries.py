@@ -22,12 +22,33 @@ def get_user_by_id(user_id):
 
 
 def get_summary_stats(user_id):
-    # SUBAGENT 2 (Summary stats): implement this function.
-    # Contract: return {"total_spent": <float>, "transaction_count": <int>, "top_category": <str>}
-    # total_spent = SUM(amount) across the user's expenses (0 if none)
-    # transaction_count = COUNT(*) across the user's expenses (0 if none)
-    # top_category = category with the highest SUM(amount) ("—" if none)
-    raise NotImplementedError
+    conn = get_db()
+
+    totals = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count "
+        "FROM expenses WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+
+    top = conn.execute(
+        """
+        SELECT category
+        FROM expenses
+        WHERE user_id = ?
+        GROUP BY category
+        ORDER BY SUM(amount) DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    ).fetchone()
+
+    conn.close()
+
+    return {
+        "total_spent": totals["total"],
+        "transaction_count": totals["count"],
+        "top_category": top["category"] if top else "—",
+    }
 
 
 def get_recent_transactions(user_id, limit=10):
