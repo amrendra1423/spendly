@@ -624,6 +624,17 @@ a { color: inherit; text-decoration: none; }
     margin-bottom: 0.75rem;
 }
 
+.tx-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.tx-section-header .profile-section-title {
+    margin-bottom: 0;
+}
+
 .profile-card {
     background: var(--paper-card);
     border: 1px solid var(--border);

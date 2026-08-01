@@ -4,12 +4,13 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from database.db import get_db, init_db, seed_db, get_user_by_email
+from database.db import get_db, init_db, seed_db, get_user_by_email, CATEGORIES
 from database.queries import (
     get_user_by_id,
     get_summary_stats,
     get_recent_transactions,
     get_category_breakdown,
+    insert_expense,
 )
 
 app = Flask(__name__)
@@ -264,9 +265,56 @@ def analytics():
     return render_template("analytics.html")
 
 
-@app.route("/expenses/add")
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "GET":
+        return render_template(
+            "add_expense.html",
+            categories=CATEGORIES,
+            today=datetime.now().date().strftime("%Y-%m-%d"),
+        )
+
+    raw_amount = request.form.get("amount", "")
+    category = request.form.get("category", "")
+    raw_date = request.form.get("date", "")
+    description = request.form.get("description", "").strip()
+
+    form_values = {
+        "amount": raw_amount,
+        "category": category,
+        "date": raw_date,
+        "description": description,
+    }
+
+    try:
+        amount = float(raw_amount)
+    except ValueError:
+        amount = None
+
+    error = None
+    if amount is None or amount <= 0:
+        error = "Enter a valid amount greater than 0."
+    elif category not in CATEGORIES:
+        error = "Select a valid category."
+    elif _parse_date(raw_date) is None:
+        error = "Enter a valid date."
+
+    if error:
+        return render_template(
+            "add_expense.html",
+            categories=CATEGORIES,
+            today=raw_date or datetime.now().date().strftime("%Y-%m-%d"),
+            error=error,
+            values=form_values,
+        )
+
+    insert_expense(
+        session["user_id"], amount, category, raw_date, description or None
+    )
+    return redirect(url_for("profile"))
 
 
 @app.route("/expenses/<int:id>/edit")
