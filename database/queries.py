@@ -21,25 +21,31 @@ def get_user_by_id(user_id):
     }
 
 
-def get_summary_stats(user_id):
+def get_summary_stats(user_id, date_from=None, date_to=None):
     conn = get_db()
+
+    params = [user_id]
+    date_clause = ""
+    if date_from is not None and date_to is not None:
+        date_clause = " AND date BETWEEN ? AND ?"
+        params.extend([date_from, date_to])
 
     totals = conn.execute(
         "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count "
-        "FROM expenses WHERE user_id = ?",
-        (user_id,),
+        "FROM expenses WHERE user_id = ?" + date_clause,
+        params,
     ).fetchone()
 
     top = conn.execute(
         """
         SELECT category
         FROM expenses
-        WHERE user_id = ?
+        WHERE user_id = ?""" + date_clause + """
         GROUP BY category
         ORDER BY SUM(amount) DESC
         LIMIT 1
         """,
-        (user_id,),
+        params,
     ).fetchone()
 
     conn.close()
@@ -51,17 +57,25 @@ def get_summary_stats(user_id):
     }
 
 
-def get_recent_transactions(user_id, limit=10):
+def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
     conn = get_db()
+
+    params = [user_id]
+    date_clause = ""
+    if date_from is not None and date_to is not None:
+        date_clause = " AND date BETWEEN ? AND ?"
+        params.extend([date_from, date_to])
+    params.append(limit)
+
     rows = conn.execute(
         """
         SELECT date, description, category, amount
         FROM expenses
-        WHERE user_id = ?
+        WHERE user_id = ?""" + date_clause + """
         ORDER BY date DESC, id DESC
         LIMIT ?
         """,
-        (user_id, limit),
+        params,
     ).fetchall()
     conn.close()
 
@@ -76,17 +90,24 @@ def get_recent_transactions(user_id, limit=10):
     ]
 
 
-def get_category_breakdown(user_id):
+def get_category_breakdown(user_id, date_from=None, date_to=None):
     conn = get_db()
+
+    params = [user_id]
+    date_clause = ""
+    if date_from is not None and date_to is not None:
+        date_clause = " AND date BETWEEN ? AND ?"
+        params.extend([date_from, date_to])
+
     rows = conn.execute(
         """
         SELECT category, SUM(amount) AS total
         FROM expenses
-        WHERE user_id = ?
+        WHERE user_id = ?""" + date_clause + """
         GROUP BY category
         ORDER BY total DESC
         """,
-        (user_id,),
+        params,
     ).fetchall()
     conn.close()
 
