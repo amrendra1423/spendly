@@ -17,6 +17,36 @@
         </div>
     </div>
 
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="filter-flash-error">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="filter-bar">
+        <div class="filter-presets">
+            {% for preset in presets %}
+            <a href="{{ url_for('profile', date_from=preset.date_from, date_to=preset.date_to) }}"
+               class="filter-preset-btn{{ ' filter-preset-btn-active' if active_preset == preset.key else '' }}">
+                {{ preset.label }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <form method="GET" action="{{ url_for('profile') }}"
+              class="filter-custom-form{{ ' filter-custom-form-active' if active_preset == 'custom' else '' }}">
+            <label for="date_from">From
+                <input type="date" id="date_from" name="date_from" value="{{ filters.raw_from }}">
+            </label>
+            <label for="date_to">To
+                <input type="date" id="date_to" name="date_to" value="{{ filters.raw_to }}">
+            </label>
+            <button type="submit" class="btn-primary">Apply</button>
+        </form>
+    </div>
+
     <div>
         <h2 class="profile-section-title">Overview</h2>
         <div class="stat-row">

@@ -1,3 +1,4 @@
+from calendar import monthrange
 from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
@@ -35,6 +36,52 @@ def _display_date(iso_date):
 def _initials(name):
     words = name.split()
     return "".join(word[0] for word in words[:2]).upper()
+
+
+def _parse_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _subtract_months(d, months):
+    total_months = d.month - 1 - months
+    year = d.year + total_months // 12
+    month = total_months % 12 + 1
+    day = min(d.day, monthrange(year, month)[1])
+    return d.replace(year=year, month=month, day=day)
+
+
+def _build_presets(today):
+    return [
+        {
+            "key": "this_month",
+            "label": "This Month",
+            "date_from": today.replace(day=1).strftime("%Y-%m-%d"),
+            "date_to": today.strftime("%Y-%m-%d"),
+        },
+        {
+            "key": "last_3_months",
+            "label": "Last 3 Months",
+            "date_from": _subtract_months(today, 3).strftime("%Y-%m-%d"),
+            "date_to": today.strftime("%Y-%m-%d"),
+        },
+        {
+            "key": "last_6_months",
+            "label": "Last 6 Months",
+            "date_from": _subtract_months(today, 6).strftime("%Y-%m-%d"),
+            "date_to": today.strftime("%Y-%m-%d"),
+        },
+        {
+            "key": "all_time",
+            "label": "All Time",
+            "date_from": None,
+            "date_to": None,
+        },
+    ]
 
 
 # ------------------------------------------------------------------ #
@@ -139,8 +186,35 @@ def profile():
         "member_since": user_row["member_since"],
     }
 
+    raw_from = request.args.get("date_from", "")
+    raw_to = request.args.get("date_to", "")
+    parsed_from = _parse_date(raw_from)
+    parsed_to = _parse_date(raw_to)
+
+    date_from = date_to = None
+    if parsed_from and parsed_to:
+        if parsed_from > parsed_to:
+            flash("Start date must be before end date.")
+        else:
+            date_from = parsed_from.strftime("%Y-%m-%d")
+            date_to = parsed_to.strftime("%Y-%m-%d")
+
+    presets = _build_presets(datetime.now().date())
+    active_preset = "all_time"
+    if date_from and date_to:
+        active_preset = next(
+            (
+                p["key"]
+                for p in presets
+                if p["key"] != "all_time"
+                and p["date_from"] == date_from
+                and p["date_to"] == date_to
+            ),
+            "custom",
+        )
+
     # --- BEGIN_STATS_BLOCK ---
-    summary = get_summary_stats(user_id)
+    summary = get_summary_stats(user_id, date_from=date_from, date_to=date_to)
     stats = {
         "total_spent": _currency(summary["total_spent"]),
         "transaction_count": summary["transaction_count"],
@@ -156,7 +230,7 @@ def profile():
             "category": tx["category"],
             "amount": _currency(tx["amount"]),
         }
-        for tx in get_recent_transactions(user_id)
+        for tx in get_recent_transactions(user_id, date_from=date_from, date_to=date_to)
     ]
     # --- END_TRANSACTIONS_BLOCK ---
 
@@ -167,7 +241,7 @@ def profile():
             "amount": _currency(cat["amount"]),
             "percent": cat["pct"],
         }
-        for cat in get_category_breakdown(user_id)
+        for cat in get_category_breakdown(user_id, date_from=date_from, date_to=date_to)
     ]
     # --- END_CATEGORIES_BLOCK ---
 
@@ -177,6 +251,9 @@ def profile():
         stats=stats,
         transactions=transactions,
         categories=categories,
+        filters={"raw_from": raw_from, "raw_to": raw_to},
+        presets=presets,
+        active_preset=active_preset,
     )
 
 
