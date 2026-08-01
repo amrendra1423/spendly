@@ -22,7 +22,7 @@
                 {% if session.get('user_id') %}
                 <a href="{{ url_for('analytics') }}" class="{{ 'nav-link-active' if request.endpoint == 'analytics' else '' }}">Analytics</a>
                 <a href="{{ url_for('add_expense') }}" class="{{ 'nav-link-active' if request.endpoint == 'add_expense' else '' }}">Add Expense</a>
-                <span class="nav-user">{{ session.get('user_name') }}</span>
+                <a href="{{ url_for('profile') }}" class="nav-user{{ ' nav-link-active' if request.endpoint == 'profile' else '' }}">{{ session.get('user_name') }}</a>
                 <a href="{{ url_for('logout') }}">Sign out</a>
                 {% else %}
                 <a href="{{ url_for('login') }}">Sign in</a>
