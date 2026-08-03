@@ -1,3 +1,4 @@
+import os
 from calendar import monthrange
 from datetime import datetime
 
@@ -26,8 +27,7 @@ from database.queries import (
 )
 
 app = Flask(__name__)
-# TODO: move to an environment variable before production
-app.secret_key = "dev-secret-key-change-in-production"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 
 with app.app_context():
     init_db()
@@ -399,4 +399,6 @@ def delete_expense(id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5001))
+    debug = os.environ.get("FLASK_DEBUG") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
