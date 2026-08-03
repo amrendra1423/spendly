@@ -1,7 +1,16 @@
 from calendar import monthrange
 from datetime import datetime
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    flash,
+    abort,
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from database.db import get_db, init_db, seed_db, get_user_by_email, CATEGORIES
@@ -11,6 +20,8 @@ from database.queries import (
     get_recent_transactions,
     get_category_breakdown,
     insert_expense,
+    get_expense_by_id,
+    update_expense,
 )
 
 app = Flask(__name__)
@@ -226,6 +237,7 @@ def profile():
     # --- BEGIN_TRANSACTIONS_BLOCK ---
     transactions = [
         {
+            "id": tx["id"],
             "date": _display_date(tx["date"]),
             "description": tx["description"],
             "category": tx["category"],
@@ -317,9 +329,59 @@ def add_expense():
     return redirect(url_for("profile"))
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    expense = get_expense_by_id(id, session["user_id"])
+    if expense is None:
+        abort(404)
+
+    if request.method == "GET":
+        return render_template(
+            "edit_expense.html",
+            categories=CATEGORIES,
+            expense=expense,
+        )
+
+    raw_amount = request.form.get("amount", "")
+    category = request.form.get("category", "")
+    raw_date = request.form.get("date", "")
+    description = request.form.get("description", "").strip()
+
+    form_values = {
+        "amount": raw_amount,
+        "category": category,
+        "date": raw_date,
+        "description": description,
+    }
+
+    try:
+        amount = float(raw_amount)
+    except ValueError:
+        amount = None
+
+    error = None
+    if amount is None or amount <= 0:
+        error = "Enter a valid amount greater than 0."
+    elif category not in CATEGORIES:
+        error = "Select a valid category."
+    elif _parse_date(raw_date) is None:
+        error = "Enter a valid date."
+
+    if error:
+        return render_template(
+            "edit_expense.html",
+            categories=CATEGORIES,
+            expense={**expense, **form_values, "id": id},
+            error=error,
+        )
+
+    update_expense(
+        id, session["user_id"], amount, category, raw_date, description or None
+    )
+    return redirect(url_for("profile"))
 
 
 @app.route("/expenses/<int:id>/delete")
